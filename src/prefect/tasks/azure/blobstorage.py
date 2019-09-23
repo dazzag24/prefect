@@ -59,10 +59,16 @@ class BlobStorageDownload(Task):
         azure_credentials = Secret(azure_credentials_secret).get()
         az_account_name = azure_credentials["ACCOUNT_NAME"]
         az_account_key = azure_credentials["ACCOUNT_KEY"]
+        az_sas_token = azure_credentials["SAS_TOKEN"]
 
-        blob_service = azure.storage.blob.BlockBlobService(
-            account_name=az_account_name, account_key=az_account_key
-        )
+        if az_sas_token is None:
+            blob_service = azure.storage.blob.BlockBlobService(
+                account_name=az_account_name, account_key=az_account_key
+            )
+        else:
+            blob_service = azure.storage.blob.BlockBlobService(
+                account_name=az_account_name, sas_token=az_sas_token
+            )
 
         blob_result = blob_service.get_blob_to_text(
             container_name=container, blob_name=blob_name
@@ -127,10 +133,16 @@ class BlobStorageUpload(Task):
         azure_credentials = Secret(azure_credentials_secret).get()
         az_account_name = azure_credentials["ACCOUNT_NAME"]
         az_account_key = azure_credentials["ACCOUNT_KEY"]
+        az_sas_token = azure_credentials["SAS_TOKEN"]
 
-        blob_service = azure.storage.blob.BlockBlobService(
-            account_name=az_account_name, account_key=az_account_key
-        )
+        if az_sas_token is None:
+            blob_service = azure.storage.blob.BlockBlobService(
+                account_name=az_account_name, account_key=az_account_key
+            )
+        else:
+            blob_service = azure.storage.blob.BlockBlobService(
+                account_name=az_account_name, sas_token=az_sas_token
+            )
 
         ## create key if not provided
         if blob_name is None:

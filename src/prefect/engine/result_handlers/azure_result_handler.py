@@ -46,9 +46,16 @@ class AzureResultHandler(ResultHandler):
 
         az_account_name = azure_credentials["ACCOUNT_NAME"]
         az_account_key = azure_credentials["ACCOUNT_KEY"]
-        blob_service = azure.storage.blob.BlockBlobService(
-            account_name=az_account_name, account_key=az_account_key
-        )
+        az_sas_token = azure_credentials["SAS_TOKEN"]
+
+        if az_sas_token is None:
+            blob_service = azure.storage.blob.BlockBlobService(
+                account_name=az_account_name, account_key=az_account_key
+            )
+        else:
+            blob_service = azure.storage.blob.BlockBlobService(
+                account_name=az_account_name, sas_token=az_sas_token
+            )
         self.service = blob_service
 
     @property
