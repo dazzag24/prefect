@@ -58,8 +58,12 @@ class BlobStorageDownload(Task):
         # get Azure credentials
         azure_credentials = Secret(azure_credentials_secret).get()
         az_account_name = azure_credentials["ACCOUNT_NAME"]
-        az_account_key = azure_credentials["ACCOUNT_KEY"]
-        az_sas_token = azure_credentials["SAS_TOKEN"]
+        if 'ACCOUNT_KEY' in azure_credentials:
+            az_account_key = azure_credentials["ACCOUNT_KEY"]
+        elif 'SAS_TOKEN' in azure_credentials:
+            az_sas_token = azure_credentials["SAS_TOKEN"]
+        else:
+            raise ValueError("One of either ACCOUNT_KEY or SAS_TOKEN must be provided in the azure_credentials_secret.")
 
         if az_sas_token is None:
             blob_service = azure.storage.blob.BlockBlobService(
@@ -91,7 +95,6 @@ class BlobStorageUpload(Task):
         - **kwargs (dict, optional): additional keyword arguments to pass to the
             Task constructor
     """
-
     def __init__(
         self,
         azure_credentials_secret: str = "AZ_CREDENTIALS",
@@ -132,8 +135,12 @@ class BlobStorageUpload(Task):
         ## get Azure credentials
         azure_credentials = Secret(azure_credentials_secret).get()
         az_account_name = azure_credentials["ACCOUNT_NAME"]
-        az_account_key = azure_credentials["ACCOUNT_KEY"]
-        az_sas_token = azure_credentials["SAS_TOKEN"]
+        if 'ACCOUNT_KEY' in azure_credentials:
+            az_account_key = azure_credentials["ACCOUNT_KEY"]
+        elif 'SAS_TOKEN' in azure_credentials:
+            az_sas_token = azure_credentials["SAS_TOKEN"]
+        else:
+            raise ValueError("One of either ACCOUNT_KEY or SAS_TOKEN must be provided in the azure_credentials_secret.")
 
         if az_sas_token is None:
             blob_service = azure.storage.blob.BlockBlobService(
@@ -153,3 +160,88 @@ class BlobStorageUpload(Task):
         )
 
         return blob_name
+
+class BlobStorageCopy(Task):
+    """
+    Task for copying a blob object to the same or new Azure Blob Storage container.
+    Note that all initialization arguments can optionally be provided or overwritten at runtime.
+
+    Args:
+        - azure_credentials_secret (str, optional): the name of the Prefect Secret
+            that stores your Azure credentials; this Secret must be a JSON string
+            with two keys: `ACCOUNT_NAME` and `ACCOUNT_KEY`
+        - container (str, optional): the name of the Azure Blob Storage to upload to
+        - **kwargs (dict, optional): additional keyword arguments to pass to the
+            Task constructor
+    """
+    def __init__(
+        self,
+        azure_credentials_secret: str = "AZ_CREDENTIALS",
+        container: str = None,
+        **kwargs
+    ) -> None:
+        self.azure_credentials_secret = azure_credentials_secret
+        self.container = container
+        super().__init__(**kwargs)
+
+    @defaults_from_attrs("azure_credentials_secret", "container")
+    def run(
+        self,
+        blob_name: str = None,
+        target_blob_name: str = None,
+        azure_credentials_secret: str = "AZ_CREDENTIALS",
+        container: str = None,
+        target_container: str = None
+    ) -> str:
+        """
+        Task run method.
+
+        Args:
+            - blob_name (str, optional): the name to upload the data under; if not
+                    provided, a random `uuid` will be created
+            - azure_credentials_secret (str, optional): the name of the Prefect Secret
+                that stores your Azure credentials; this Secret must be a JSON string
+                with two keys: `ACCOUNT_NAME` and `ACCOUNT_KEY`
+            - container (str, optional): the name of the Blob Storage container to upload to
+
+        Returns:
+            - str: the name of the blob the data payload was uploaded to
+        """
+
+        if container is None:
+            raise ValueError("A container name must be provided.")
+
+        ## get Azure credentials
+        azure_credentials = Secret(azure_credentials_secret).get()
+        az_account_name = azure_credentials["ACCOUNT_NAME"]
+        if 'ACCOUNT_KEY' in azure_credentials:
+            az_account_key = azure_credentials["ACCOUNT_KEY"]
+        elif 'SAS_TOKEN' in azure_credentials:
+            az_sas_token = azure_credentials["SAS_TOKEN"]
+        else:
+            raise ValueError("One of either ACCOUNT_KEY or SAS_TOKEN must be provided in the azure_credentials_secret.")
+
+        if az_sas_token is None:
+            blob_service = azure.storage.blob.BlockBlobService(
+                account_name=az_account_name, account_key=az_account_key
+            )
+        else:
+            blob_service = azure.storage.blob.BlockBlobService(
+                account_name=az_account_name, sas_token=az_sas_token
+            )
+
+        if target_container is None:
+            target_container = container
+
+        blob_url = blob_service.make_blob_url(container, blob_name)
+
+        print("Copying from {} to {}/{}".format(blob_url, target_container, target_blob_name))
+
+        blob_service.copy_blob(
+            target_container,
+            target_blob_name,
+            blob_url
+            #f"https://{az_account_name}.blob.core.windows.net/{container}/{blob_name}"
+        )
+
+        return target_blob_name
