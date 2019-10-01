@@ -8,15 +8,16 @@ import os
 import json
 import time
 import datetime
-
+from dotenv import load_dotenv
 
 import prefect as pf
 from prefect.tasks.azure.blobstorage import BlobStorageDownload, BlobStorageUpload, BlobStorageCopy
 from prefect.utilities.configuration import set_temporary_config
 
+load_dotenv()
+
 CONTAINER = "prefect-test"
 BLOB = "path/to/blob.json"
-#BLOB = "blob.json"
 DATA = json.dumps([1, 2, 3])
 
 BLOB_ACCOUNT = os.environ['BLOB_ACCOUNT']
