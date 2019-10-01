@@ -126,3 +126,4 @@ docs/api/unreleased
 docs/changelog.md
 docs/deploy/dist
 docs/.vuepress/public/prefect-coverage
+__azurite_db_blob__.json
