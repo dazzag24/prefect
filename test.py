@@ -18,6 +18,8 @@ DATA = json.dumps([1, 2, 3])
 
 #blob_service = blobsrv.BlockBlobService(account_name=BLOB_ACCOUNT, sas_token=BLOB_SAS)
 blob_service = asb.BlockBlobService(is_emulated=True)
+
+blob_service.create_container(container_name=CONTAINER)
                 
 blob_service.create_blob_from_text(container_name=CONTAINER, blob_name=BLOB, text=DATA)
 
@@ -36,3 +38,6 @@ blob_service.copy_blob(
     blob_url
     #f"https://{az_account_name}.blob.core.windows.net/{container}/{blob_name}"
 )
+
+for blob in blob_service.list_blobs(container_name=CONTAINER):
+    print(blob.name)
